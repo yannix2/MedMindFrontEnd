@@ -4,27 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Activity, Dumbbell, Moon, Clock, TrendingUp,
+  Dumbbell, Moon, Clock, TrendingUp,
   Plus, Trash2, ChevronLeft, RefreshCw, CheckCircle, 
   AlertCircle, Zap, Target, Flame, ArrowRight, X, 
-  ChevronDown, Home, Search, Filter, Check, Heart, 
-  Star, BarChart3, PieChart, Battery, Coffee, Bed, 
-  Timer, Download, Share2, Settings, Bell, Menu, 
-  MoreVertical, Play, Pause, Music, Volume2, Camera, 
-  Phone, Send, Image, File, Cloud, Wifi, BatteryCharging, 
-  Tv, Smartphone, Laptop, Shield, Lock, CreditCard, 
-  Gift, Package, Grid, SlidersHorizontal, Type, Link, 
-  List, Bookmark, Tag, Percent, PlusCircle, MinusCircle, 
-  HelpCircle, Info, AlertTriangle, Megaphone, Speaker, 
-  Headphones, Satellite, Wrench, Flag, Map, MapPin, 
-  Navigation2, Compass, Globe, Mountain, TreePine, 
-  Flower, Cat, Dog, Turtle, Heart as HeartIcon, Rocket, 
-  Sun, CloudRain, CloudSnow, CloudLightning, Wind, 
-  Fire, Droplet, Umbrella, Snowflake, Thermometer, 
-  Gamepad, Mouse, Keyboard, Calculator, Calendar, 
-  AlarmClock, Hourglass, Stopwatch, History, ShoppingCart, 
-  Building, Hotel, School, Hospital, Car, Bus, Train, Plane, 
-  Ship, Bike, Running, Swimming, Camping, Tent, Sunrise, Sunset
+  ChevronDown,
+ 
 } from 'lucide-react';
 
 import { activityTodayService, type ActivityDay, type Sport, type NewSportData, type SleepData } from '@/lib/activity-today'
