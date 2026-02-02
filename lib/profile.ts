@@ -81,63 +81,26 @@ async getProfile(): Promise<UserProfileData | null> {
     
     throw new Error(errorMsg)
   }},   
-  // Create or update profile
   async saveProfile(data: ProfileFormData): Promise<UserProfileData> {
-    try {
-      debugRequest('POST', '/lifestyle/user-profiles/', data)
-      
-      // First verify authentication
-      const isAuth = await authService.isAuthenticated()
-      if (!isAuth) {
-        throw new Error('Not authenticated. Please login first.')
-      }
-      
-      const response = await api.post('/lifestyle/user-profiles/', data)
-      console.log('✅ Profile saved successfully:', response.data)
-      return response.data
-    } catch (error: any) {
-      console.error('❌ Profile save error:', error)
-      
-      // Handle authentication errors
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.log('🔒 Authentication error during profile save')
-        
-        // Detailed debug
-        cookieHelper.debugCookies()
-        
-        // Clear auth data
-        authService.clearAuthData()
-        
-        // Provide helpful error message
-        if (!cookieHelper.hasJwtCookie()) {
-          throw new Error('Session expired (no cookie). Please login again.')
-        } else {
-          throw new Error('Session expired (invalid cookie). Please login again.')
-        }
-      }
-      
-      // Handle validation errors
-      if (error.response?.status === 400) {
-        const errorData = error.response.data
-        if (typeof errorData === 'object') {
-          // Extract field errors
-          const fieldErrors = Object.entries(errorData)
-            .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
-            .join('\n')
-          
-          throw new Error(`Validation failed:\n${fieldErrors}`)
-        }
-      }
-      
-      throw new Error(
-        error.response?.data?.message || 
-        error.response?.data?.detail || 
-        error.response?.data?.error || 
-        error.message || 
-        'Failed to save profile'
-      )
-    }
-  },
+  try {
+    debugRequest('POST', '/lifestyle/user-profiles/', data)
+
+    // 1. Verify authentication
+    
+
+    // 2. Make the request
+    const response = await api.post('/lifestyle/user-profiles/', data, {
+      withCredentials: true
+    })
+
+    return response.data
+
+  } catch (error: any) {
+    console.error('Error saving profile:', error)
+    throw error
+  }
+},
+
 
   // Update existing profile
   async updateProfile(profileId: number, data: ProfileFormData): Promise<UserProfileData> {

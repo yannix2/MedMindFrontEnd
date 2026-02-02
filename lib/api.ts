@@ -1,7 +1,7 @@
 // lib/api.ts - FIXED VERSION
 import axios from 'axios'
 
-export const API_BASE_URL = 'https://medmind-wkpd.onrender.com/api'
+export const API_BASE_URL = 'http://127.0.0.1:8000/api'
 
 // CRITICAL: Create axios instance with explicit config
 const api = axios.create({

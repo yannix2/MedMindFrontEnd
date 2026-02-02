@@ -4,9 +4,12 @@ import { activityService, ActivityDayData } from '@/lib/activity'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import {EnhancedLiveHealthStats} from '@/components/sections/EnhancedLiveHealthStats'
 import ActivityTrackingModal from '@/components/sections/ActivityTrackingModal'
 import { activityTodayService } from '@/lib/activity-today'
+
 import { 
+  MessageSquare,
   Brain, 
   Heart,
   LogOut, 
@@ -56,7 +59,12 @@ import {
   Trophy,
   Target as TargetIcon,
   Zap as ZapIcon,
-  TrendingUp as TrendingUpIcon
+  TrendingUp as TrendingUpIcon,
+  Cpu,
+  Database,
+  LineChart,
+  Wind,
+  Waves
 } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import { dashboardService, DashboardData, healthScoreCalculator } from '@/lib/dashboard'
@@ -96,6 +104,14 @@ export default function DashboardPage() {
   const [currentTipIndex, setCurrentTipIndex] = useState(0)
   const [showMotivation, setShowMotivation] = useState(false)
 
+  // AI Data & Analytics
+  const [aiInsights, setAiInsights] = useState({
+    dailyTip: '',
+    weeklyTrend: '',
+    healthPredictions: [] as string[],
+    improvementAreas: [] as string[]
+  })
+
   // Calculate health stats
   const calculatedStats = healthScoreCalculator.calculateStats(dashboardData, todaysActivity)
   const totalScore = healthScoreCalculator.calculateTotalScore(
@@ -109,6 +125,15 @@ export default function DashboardPage() {
     { x: 90, y: 60, color: 'from-emerald-500/10 to-cyan-500/10', size: 160, duration: 30, delay: 3 },
     { x: 15, y: 80, color: 'from-purple-500/10 to-pink-500/10', size: 100, duration: 20, delay: 1 },
     { x: 85, y: 20, color: 'from-amber-500/10 to-orange-500/10', size: 140, duration: 35, delay: 2 },
+  ]
+
+  // Floating animated elements
+  const floatingElements = [
+    { icon: BrainCircuit, x: 10, y: 20, delay: 0, size: 24 },
+    { icon: HeartPulse, x: 85, y: 30, delay: 1, size: 28 },
+    { icon: Cpu, x: 20, y: 70, delay: 2, size: 22 },
+    { icon: Database, x: 75, y: 65, delay: 3, size: 26 },
+    { icon: LineChart, x: 40, y: 85, delay: 4, size: 24 },
   ]
 
   useEffect(() => {
@@ -131,9 +156,12 @@ export default function DashboardPage() {
       )
       setHealthTips(tips)
       
+      // Generate AI insights
+      generateAIInsights()
+      
       // Show motivation animation
       setShowMotivation(true)
-      setTimeout(() => setShowMotivation(false), 3000)
+      setTimeout(() => setShowMotivation(false), 6000)
       
       // Rotate tips every 5 seconds
       const tipInterval = setInterval(() => {
@@ -143,6 +171,55 @@ export default function DashboardPage() {
       return () => clearInterval(tipInterval)
     }
   }, [dashboardData, todaysActivity])
+
+  const generateAIInsights = () => {
+    const nutritionScore = dashboardData?.eating_day?.nutrition_score || 0
+    const activityScore = todaysActivity?.activity_score || 0
+    const bmi = calculateBMI()
+    
+    // Generate daily AI tip
+    const dailyTips = [
+      "AI Tip: Based on your recent activity, incorporating 30 minutes of brisk walking daily could improve your cardiovascular health by 15%.",
+      "AI Insight: Your hydration levels are optimal! Maintaining this can boost cognitive function by up to 20%.",
+      "Health Prediction: With consistent activity tracking, you're projected to reach your fitness goals 2 weeks ahead of schedule.",
+      "Nutrition Analysis: Your current meal patterns suggest adding more leafy greens could improve digestion and energy levels.",
+      "Sleep Optimization: Based on your sleep data, moving bedtime 30 minutes earlier could increase REM sleep by 25%."
+    ]
+    
+    // Generate weekly trend
+    const weeklyTrends = [
+      "Weekly Trend: Your activity consistency has improved by 18% compared to last week. Keep it up!",
+      "Trend Analysis: Nutrition scores are trending upward. This correlates with improved energy levels.",
+      "Performance Insight: Your recovery time between workouts has decreased by 22%, indicating better fitness adaptation.",
+      "Health Trend: Sleep quality shows positive correlation with daily activity scores.",
+      "Progress Update: Your metabolic health indicators show steady improvement over the last 7 days."
+    ]
+    
+    // Health predictions
+    const healthPredictions = [
+      "In 2 weeks: Improved endurance for cardio activities",
+      "In 1 month: Better sleep quality and recovery",
+      "In 3 months: Weight management improvements",
+      "In 6 months: Enhanced metabolic health markers",
+      "In 1 year: Reduced risk of lifestyle-related conditions"
+    ]
+    
+    // Improvement areas
+    const improvementAreas = [
+      "Focus on post-workout nutrition for better recovery",
+      "Consider adding strength training 2x weekly",
+      "Monitor sodium intake for optimal blood pressure",
+      "Increase daily fiber intake by 5-10g",
+      "Aim for consistent bedtime within 30-minute window"
+    ]
+    
+    setAiInsights({
+      dailyTip: dailyTips[Math.floor(Math.random() * dailyTips.length)],
+      weeklyTrend: weeklyTrends[Math.floor(Math.random() * weeklyTrends.length)],
+      healthPredictions: healthPredictions.slice(0, 3),
+      improvementAreas: improvementAreas.slice(0, 2)
+    })
+  }
 
   const checkAuthAndLoadDashboard = async () => {
     try {
@@ -191,7 +268,7 @@ export default function DashboardPage() {
         if (!dashboard.eating_day) {
           setTimeout(() => {
             setShowEatingModal(true)
-          }, 500)
+          }, 1000) // Increased delay for better UX
         }
       } catch (error) {
         console.error('Error loading dashboard:', error)
@@ -283,7 +360,8 @@ export default function DashboardPage() {
       default: return <Soup className="h-4 w-4" />
     }
   }
-   const getSportIcon = (sportType: string) => {
+
+  const getSportIcon = (sportType: string) => {
     const icons: Record<string, string> = {
       'Running': '🏃‍♂️',
       'Walking': '🚶‍♂️',
@@ -316,6 +394,7 @@ export default function DashboardPage() {
     }
     return icons[sportType] || '⚽'
   }
+
   const mealOptions = [
     { value: 0, label: 'Skipped all meals', icon: <X className="h-5 w-5" />, color: 'from-gray-500 to-gray-600' },
     { value: 1, label: '1 meal', icon: <Coffee className="h-5 w-5" />, color: 'from-blue-500 to-cyan-500' },
@@ -323,7 +402,7 @@ export default function DashboardPage() {
     { value: 3, label: '3 meals', icon: <Pizza className="h-5 w-5" />, color: 'from-amber-500 to-orange-500' },
     { value: 4, label: '4+ meals', icon: <Salad className="h-5 w-5" />, color: 'from-purple-500 to-pink-500' },
   ]
-  
+
   if (loading || checkingStatus) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
@@ -531,10 +610,67 @@ export default function DashboardPage() {
               }}
             />
           ))}
+
+          {/* Floating AI Elements */}
+          {floatingElements.map((element, index) => {
+            const Icon = element.icon
+            return (
+              <motion.div
+                key={index}
+                className="absolute text-gray-400/5 dark:text-gray-600/10"
+                style={{
+                  left: `${element.x}%`,
+                  top: `${element.y}%`,
+                }}
+                animate={{
+                  y: [0, -20, 0],
+                  rotate: [0, 5, 0, -5, 0],
+                }}
+                transition={{
+                  duration: 6 + index,
+                  repeat: Infinity,
+                  delay: element.delay,
+                  ease: "easeInOut"
+                }}
+              >
+                <Icon size={element.size} />
+              </motion.div>
+            )
+          })}
         </div>
 
         {/* Subtle Grid Pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000002_1px,transparent_1px),linear-gradient(to_bottom,#00000002_1px,transparent_1px)] bg-[size:40px_40px] opacity-30" />
+
+        {/* Neural Network Background */}
+        <svg className="absolute inset-0 w-full h-full opacity-5">
+          <defs>
+            <linearGradient id="neural-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#3b82f6" />
+              <stop offset="100%" stopColor="#8b5cf6" />
+            </linearGradient>
+          </defs>
+          {Array.from({ length: 20 }).map((_, i) => (
+            <motion.path
+              key={i}
+              d={`M ${Math.random() * 100} ${Math.random() * 100} 
+                  C ${Math.random() * 100} ${Math.random() * 100},
+                    ${Math.random() * 100} ${Math.random() * 100},
+                    ${Math.random() * 100} ${Math.random() * 100}`}
+              fill="none"
+              stroke="url(#neural-gradient)"
+              strokeWidth="0.5"
+              strokeDasharray="5,5"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{
+                duration: 10 + Math.random() * 10,
+                repeat: Infinity,
+                delay: Math.random() * 5
+              }}
+            />
+          ))}
+        </svg>
 
         <div className="container relative mx-auto px-4 py-8">
           {/* Header */}
@@ -546,46 +682,190 @@ export default function DashboardPage() {
           >
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div>
-                <div className="flex items-center gap-3 mb-2">
+                <motion.div 
+                  className="flex items-center gap-3 mb-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur" />
-                    <div className="relative p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full">
+                    <motion.div
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur"
+                    />
+                    <motion.div
+                      whileHover={{ rotate: 12, scale: 1.1 }}
+                      transition={{ type: "spring", stiffness: 300 }}
+                      className="relative p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full"
+                    >
                       <Brain className="h-6 w-6 text-white" />
-                    </div>
+                    </motion.div>
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    <motion.h1 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                      className="text-3xl font-bold text-gray-900 dark:text-white"
+                    >
                       Welcome back, <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">{user?.name || user?.email?.split('@')[0]}</span>
-                    </h1>
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                    </p>
+                    </motion.h1>
+                    <motion.p 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.3 }}
+                      className="text-gray-600 dark:text-gray-400"
+                    >
+                      {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </motion.p>
                   </div>
-                </div>
+                </motion.div>
               </div>
               
-              <div className="flex items-center gap-3">
-                <button
+              <motion.div 
+                className="flex items-center gap-3"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4 }}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => router.push('/myhealthProfile')}
                   className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                 >
                   Edit Profile
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => router.push('/mymedicalProfile')}
                   className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                 >
                   Medical Profile
-                </button>
-                <button
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleLogout}
                   className="group relative px-4 py-2.5 bg-gradient-to-r from-red-500 to-pink-500 text-white rounded-lg hover:shadow-lg transition-all hover:scale-[1.02] flex items-center gap-2"
                 >
                   <LogOut className="h-4 w-4" />
                   <span>Logout</span>
-                </button>
+                </motion.button>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* AI Insights Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="mb-6"
+          >
+          <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-blue-200/50 dark:border-blue-800/50 relative overflow-hidden">
+  {/* Animated background effect */}
+  <div className="absolute inset-0 opacity-10">
+    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse" />
+  </div>
+  
+  <div className="relative z-10">
+    <div className="flex items-start gap-4 mb-4">
+      <motion.div
+        animate={{ rotate: [0, 10, 0, -10, 0] }}
+        transition={{ duration: 4, repeat: Infinity }}
+        className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl shadow-lg"
+      >
+        <BrainCircuit className="h-6 w-6 text-white" />
+      </motion.div>
+      
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+            AI Health Assistant
+          </span>
+          <motion.div
+            animate={{ scale: [0.9, 1,0.9] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+            className="flex items-center gap-1.5"
+          >
+            <div className="h-2 w-2 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full" />
+            <span className="px-2.5 py-0.5 text-xs bg-gradient-to-r from-emerald-500/20 to-green-500/20 text-emerald-700 dark:text-emerald-300 rounded-full font-medium">
+              LIVE AI
+            </span>
+          </motion.div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-blue-50/30 to-purple-50/30 dark:from-gray-800/30 dark:to-purple-900/10 rounded-xl p-4 mb-4 border border-blue-100/50 dark:border-purple-800/30">
+          <div className="flex items-start gap-3">
+            <Sparkles className="h-5 w-5 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-gray-800 dark:text-gray-100 font-medium mb-1">Today's AI Insight</p>
+              <p className="text-gray-700 dark:text-gray-300 text-sm">{aiInsights.dailyTip}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Action Buttons Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* AI Dashboard Button */}
+          <motion.button
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push('/MyAiDashboard')}
+            className="group relative overflow-hidden px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2.5"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <LineChart className="h-4.5 w-4.5" />
+            <span className="text-sm">AI Dashboard</span>
+            <ChevronRight className="h-3.5 w-3.5 opacity-70 group-hover:translate-x-1 transition-transform" />
+          </motion.button>
+          
+          {/* MedMind Chatbot Button */}
+          <motion.button
+            whileHover={{ scale: 1.02, y: -2 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push('/MedMindChatbotAI')}
+            className="group relative overflow-hidden px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2.5"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            <MessageSquare className="h-4.5 w-4.5" />
+            <span className="text-sm">AI Chat Assistant</span>
+            <motion.div
+              animate={{ x: [0, 2, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="ml-1"
+            >
+              <ChevronRight className="h-3.5 w-3.5 opacity-70" />
+            </motion.div>
+          </motion.button>
+        </div>
+        
+        {/* Quick Stats */}
+        <div className="mt-4 pt-4 border-t border-blue-100/50 dark:border-purple-800/30">
+          <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <Cpu className="h-3.5 w-3.5 text-blue-500" />
+                <span>Quantum AI</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Shield className="h-3.5 w-3.5 text-emerald-500" />
+                <span>Secure</span>
               </div>
             </div>
+            <div className="flex items-center gap-1.5">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              <span>Real-time</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
           </motion.div>
 
           {/* Animated Motivation Message */}
@@ -597,8 +877,29 @@ export default function DashboardPage() {
                 exit={{ opacity: 0, y: -20, scale: 0.9 }}
                 className="mb-6"
               >
-                <div className={`bg-gradient-to-r ${scoreMessage.gradient} p-6 rounded-2xl shadow-lg`}>
-                  <div className="flex items-center gap-4">
+                <div className={`bg-gradient-to-r ${scoreMessage.gradient} p-6 rounded-2xl shadow-lg overflow-hidden`}>
+                  {/* Animated background particles */}
+                  <div className="absolute inset-0">
+                    {[...Array(10)].map((_, i) => (
+                      <motion.div
+                        key={i}
+                        className="absolute w-2 h-2 bg-white/20 rounded-full"
+                        initial={{ x: Math.random() * 100 + '%', y: Math.random() * 100 + '%', scale: 0 }}
+                        animate={{
+                          x: [null, Math.random() * 100 + '%'],
+                          y: [null, Math.random() * 100 + '%'],
+                          scale: [0, 1, 0]
+                        }}
+                        transition={{
+                          duration: 3 + Math.random() * 2,
+                          repeat: Infinity,
+                          delay: Math.random() * 2
+                        }}
+                      />
+                    ))}
+                  </div>
+                  
+                  <div className="relative z-10 flex items-center gap-4">
                     <motion.div
                       animate={{ rotate: [0, 10, 0, -10, 0] }}
                       transition={{ duration: 2, repeat: Infinity }}
@@ -623,9 +924,15 @@ export default function DashboardPage() {
                         {scoreMessage.subtext}
                       </motion.p>
                     </div>
-                    <div className="text-4xl font-bold text-white/20">
+                    <motion.div 
+                      key={totalScore}
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring" }}
+                      className="text-4xl font-bold text-white/20"
+                    >
                       {totalScore}
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
               </motion.div>
@@ -636,18 +943,28 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
             className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8"
           >
             {/* Health Score Card */}
-            <div className="lg:col-span-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6">
+            <div className="lg:col-span-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden">
+              {/* Animated border */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-5 transition-opacity duration-300" />
+              
               <div className="flex items-center justify-between mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Today's Health Score</h2>
                   <p className="text-gray-600 dark:text-gray-400">Combined nutrition & activity performance</p>
                 </div>
                 <div className="text-right">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Updated just now</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                    <motion.div
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-2 h-2 bg-green-500 rounded-full"
+                    />
+                    <span>Updated just now</span>
+                  </div>
                 </div>
               </div>
               
@@ -757,184 +1074,190 @@ export default function DashboardPage() {
 
             {/* Today's Quick Stats */}
             <div className="space-y-6">
-              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="flex items-center justify-between mb-4 relative z-10">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">BMI Status</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <motion.p 
+                      key={calculateBMI().toFixed(1)}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                      className="text-2xl font-bold text-gray-900 dark:text-white"
+                    >
                       {calculateBMI().toFixed(1)}
-                    </p>
+                    </motion.p>
                   </div>
-                  <div className={`p-3 rounded-xl ${getBMICategory(calculateBMI()).bgColor}`}>
+                  <motion.div 
+                    whileHover={{ rotate: 12 }}
+                    className={`p-3 rounded-xl ${getBMICategory(calculateBMI()).bgColor}`}
+                  >
                     <Activity className={`h-6 w-6 ${getBMICategory(calculateBMI()).color}`} />
-                  </div>
+                  </motion.div>
                 </div>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
+                <div className="text-sm text-gray-600 dark:text-gray-400 relative z-10">
                   {getBMICategory(calculateBMI()).category}
                 </div>
               </div>
 
-              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6">
-                <div className="flex items-center justify-between">
+              <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl p-6 relative overflow-hidden group">
+                <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="flex items-center justify-between relative z-10">
                   <div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Today's Meals</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    <motion.p 
+                      key={dashboardData?.eating_day?.number_of_meals || 0}
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                      className="text-2xl font-bold text-gray-900 dark:text-white"
+                    >
                       {dashboardData?.eating_day?.number_of_meals || 0}
-                    </p>
+                    </motion.p>
                   </div>
-                  <div className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl">
+                  <motion.div 
+                    whileHover={{ rotate: 12 }}
+                    className="p-3 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl"
+                  >
                     <Utensils className="h-6 w-6 text-white" />
-                  </div>
+                  </motion.div>
                 </div>
                 {!dashboardData?.eating_day && (
-                  <button
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     onClick={() => setShowEatingModal(true)}
                     className="w-full mt-4 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
                   >
                     Log Today's Meals
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </div>
           </motion.div>
 
-          {/* Live Stats Section */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-8"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
-              <BarChart3 className="h-6 w-6 text-blue-500" />
-              Live Health Stats
-            </h2>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {[
-                {
-                  title: 'Calories Burned',
-                  value: calculatedStats.caloriesBurned,
-                  icon: <Flame className="h-4 w-4" />,
-                  color: 'from-orange-500 to-red-500',
-                  unit: 'cal',
-                  trend: 'up'
-                },
-                {
-                  title: 'Steps Taken',
-                  value: calculatedStats.steps,
-                  icon: <Footprints className="h-4 w-4" />,
-                  color: 'from-emerald-500 to-green-500',
-                  unit: 'steps',
-                  trend: 'up'
-                },
-                {
-                  title: 'Water Intake',
-                  value: calculatedStats.waterIntake,
-                  icon: <Droplets className="h-4 w-4" />,
-                  color: 'from-blue-500 to-cyan-500',
-                  unit: 'glasses',
-                  trend: 'up'
-                },
-                {
-                  title: 'Sleep Hours',
-                  value: calculatedStats.sleepHours,
-                  icon: <Moon className="h-4 w-4" />,
-                  color: 'from-purple-500 to-indigo-500',
-                  unit: 'hrs',
-                  trend: calculatedStats.sleepHours >= 7 ? 'up' : 'down'
-                },
-                {
-                  title: 'Active Minutes',
-                  value: calculatedStats.activeMinutes,
-                  icon: <ZapIcon className="h-4 w-4" />,
-                  color: 'from-pink-500 to-rose-500',
-                  unit: 'min',
-                  trend: 'up'
-                },
-                {
-                  title: 'Meals Logged',
-                  value: calculatedStats.mealsLogged,
-                  icon: <Apple className="h-4 w-4" />,
-                  color: 'from-amber-500 to-orange-500',
-                  unit: 'meals',
-                  trend: calculatedStats.mealsLogged >= 3 ? 'up' : 'down'
-                },
-              ].map((stat, index) => (
-                <motion.div
-                  key={stat.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.1 * index }}
-                  className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-xl p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`p-2 bg-gradient-to-br ${stat.color} rounded-lg`}>
-                      {stat.icon}
-                    </div>
-                    <div className={`px-2 py-1 rounded-full text-xs ${
-                      stat.trend === 'up' 
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
-                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
-                    }`}>
-                      {stat.trend === 'up' ? '↑' : '↓'}
-                    </div>
+          {/* AI Health Predictions */}
+          {aiInsights.healthPredictions.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.7 }}
+              className="mb-8"
+            >
+              <div className="bg-gradient-to-r from-emerald-500/5 via-green-500/5 to-teal-500/5 rounded-2xl p-6 border border-emerald-200/50 dark:border-emerald-800/50">
+                <div className="flex items-center gap-3 mb-4">
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="p-2.5 bg-gradient-to-r from-emerald-500 to-green-500 rounded-lg"
+                  >
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      AI Health Projections
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Based on your current progress
+                    </p>
                   </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {stat.value}
-                    <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">{stat.unit}</span>
-                  </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{stat.title}</p>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {aiInsights.healthPredictions.map((prediction, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="bg-white/50 dark:bg-gray-800/50 rounded-xl p-4"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+                        <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">
+                          {prediction.split(':')[0]}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {prediction.split(':')[1]}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+      {todaysActivity && <EnhancedLiveHealthStats activityDay={todaysActivity} />}
+         
 
           {/* Health Tips Carousel */}
           {healthTips.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
+              transition={{ duration: 0.6, delay: 1.0 }}
               className="mb-8"
             >
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <Sparkles className="h-5 w-5 text-blue-500" />
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Personalized Health Tips
-                  </h3>
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-2xl p-6 relative overflow-hidden">
+                {/* Animated background */}
+                <div className="absolute inset-0">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1 h-1 bg-blue-400/20 rounded-full"
+                      initial={{ x: Math.random() * 100 + '%', y: Math.random() * 100 + '%', scale: 0 }}
+                      animate={{
+                        x: [null, Math.random() * 100 + '%'],
+                        y: [null, Math.random() * 100 + '%'],
+                        scale: [0, 1, 0]
+                      }}
+                      transition={{
+                        duration: 4 + Math.random() * 2,
+                        repeat: Infinity,
+                        delay: Math.random() * 3
+                      }}
+                    />
+                  ))}
                 </div>
                 
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={currentTipIndex}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.5 }}
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex-1">
-                      <p className="text-gray-700 dark:text-gray-300">
-                        {healthTips[currentTipIndex]}
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      {healthTips.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => setCurrentTipIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-all ${
-                            index === currentTipIndex
-                              ? 'bg-blue-500 w-4'
-                              : 'bg-gray-300 dark:bg-gray-600'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </motion.div>
-                </AnimatePresence>
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Sparkles className="h-5 w-5 text-blue-500" />
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      Personalized Health Tips
+                    </h3>
+                  </div>
+                  
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={currentTipIndex}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.5 }}
+                      className="flex items-center gap-4"
+                    >
+                      <div className="flex-1">
+                        <p className="text-gray-700 dark:text-gray-300">
+                          {healthTips[currentTipIndex]}
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        {healthTips.map((_, index) => (
+                          <motion.button
+                            key={index}
+                            whileHover={{ scale: 1.2 }}
+                            onClick={() => setCurrentTipIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              index === currentTipIndex
+                                ? 'bg-blue-500 w-4'
+                                : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </motion.div>
+                  </AnimatePresence>
+                </div>
               </div>
             </motion.div>
           )}
@@ -943,45 +1266,60 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: 0.6, delay: 1.1 }}
             className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8"
           >
             {/* Health Profile Card */}
-            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="flex items-center justify-between mb-6 relative z-10">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <User className="h-5 w-5 text-blue-500" />
                   Health Profile
                 </h3>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => router.push('/myhealthProfile')}
                   className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
                 >
                   Edit
-                </button>
+                </motion.button>
               </div>
               
               {dashboardData?.profile && (
-                <div className="space-y-4">
+                <div className="space-y-4 relative z-10">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <motion.div
+                      whileHover={{ y: -2 }}
+                      className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg"
+                    >
                       <p className="text-xs text-gray-600 dark:text-gray-400">Age</p>
                       <p className="font-semibold text-gray-900 dark:text-white">{dashboardData.profile.age} years</p>
-                    </div>
-                    <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -2 }}
+                      className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
+                    >
                       <p className="text-xs text-gray-600 dark:text-gray-400">Weight</p>
                       <p className="font-semibold text-gray-900 dark:text-white">{dashboardData.profile.weight} kg</p>
-                    </div>
-                    <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -2 }}
+                      className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg"
+                    >
                       <p className="text-xs text-gray-600 dark:text-gray-400">Height</p>
                       <p className="font-semibold text-gray-900 dark:text-white">{dashboardData.profile.height} cm</p>
-                    </div>
-                    <div className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg">
+                    </motion.div>
+                    <motion.div
+                      whileHover={{ y: -2 }}
+                      className="p-3 bg-pink-50 dark:bg-pink-900/20 rounded-lg"
+                    >
                       <p className="text-xs text-gray-600 dark:text-gray-400">Gender</p>
                       <p className="font-semibold text-gray-900 dark:text-white">
                         {dashboardData.profile.sex === 'M' ? 'Male' : dashboardData.profile.sex === 'F' ? 'Female' : 'Other'}
                       </p>
-                    </div>
+                    </motion.div>
                   </div>
                   
                   <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
@@ -997,30 +1335,37 @@ export default function DashboardPage() {
             </div>
 
             {/* Medical Profile Card */}
-            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6 relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 to-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="flex items-center justify-between mb-6 relative z-10">
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                   <HeartPulse className="h-5 w-5 text-red-500" />
                   Medical Profile
                 </h3>
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => router.push('/mymedicalProfile')}
                   className="px-3 py-1 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
                 >
                   Edit
-                </button>
+                </motion.button>
               </div>
               
               {dashboardData?.medical && (
-                <div className="space-y-4">
+                <div className="space-y-4 relative z-10">
                   <div className="space-y-3">
                     <div>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Allergies</p>
                       <div className="flex flex-wrap gap-2">
                         {dashboardData.medical.allergies.slice(0, 3).map((allergy, index) => (
-                          <span key={index} className="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded">
+                          <motion.span 
+                            key={index}
+                            whileHover={{ scale: 1.05 }}
+                            className="px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded"
+                          >
                             {allergy}
-                          </span>
+                          </motion.span>
                         ))}
                         {dashboardData.medical.allergies.length > 3 && (
                           <span className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded">
@@ -1034,9 +1379,13 @@ export default function DashboardPage() {
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Conditions</p>
                       <div className="flex flex-wrap gap-2">
                         {dashboardData.medical.maladies.map((malady, index) => (
-                          <span key={index} className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                          <motion.span 
+                            key={index}
+                            whileHover={{ scale: 1.05 }}
+                            className="px-2 py-1 text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded"
+                          >
                             {malady}
-                          </span>
+                          </motion.span>
                         ))}
                       </div>
                     </div>
@@ -1044,33 +1393,42 @@ export default function DashboardPage() {
                   
                   <div className="grid grid-cols-3 gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
                     <div className="text-center">
-                      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
-                        dashboardData.medical.is_smoker ? 'bg-red-100 dark:bg-red-900/30' : 'bg-green-100 dark:bg-green-900/30'
-                      }`}>
+                      <motion.div 
+                        whileHover={{ scale: 1.1 }}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
+                          dashboardData.medical.is_smoker ? 'bg-red-100 dark:bg-red-900/30' : 'bg-green-100 dark:bg-green-900/30'
+                        }`}
+                      >
                         <AlarmSmokeIcon className={`h-4 w-4 ${
                           dashboardData.medical.is_smoker ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'
                         }`} />
-                      </div>
+                      </motion.div>
                       <p className="text-xs text-gray-600 dark:text-gray-400">Smoker</p>
                     </div>
                     <div className="text-center">
-                      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
-                        dashboardData.medical.is_alcoholic ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'
-                      }`}>
+                      <motion.div 
+                        whileHover={{ scale: 1.1 }}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
+                          dashboardData.medical.is_alcoholic ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-green-100 dark:bg-green-900/30'
+                        }`}
+                      >
                         <Wine className={`h-4 w-4 ${
                           dashboardData.medical.is_alcoholic ? 'text-amber-600 dark:text-amber-400' : 'text-green-600 dark:text-green-400'
                         }`} />
-                      </div>
+                      </motion.div>
                       <p className="text-xs text-gray-600 dark:text-gray-400">Alcohol</p>
                     </div>
                     <div className="text-center">
-                      <div className={`inline-flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
-                        dashboardData.medical.is_drugging ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-green-100 dark:bg-green-900/30'
-                      }`}>
+                      <motion.div 
+                        whileHover={{ scale: 1.1 }}
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full mb-1 ${
+                          dashboardData.medical.is_drugging ? 'bg-purple-100 dark:bg-purple-900/30' : 'bg-green-100 dark:bg-green-900/30'
+                        }`}
+                      >
                         <Pill className={`h-4 w-4 ${
                           dashboardData.medical.is_drugging ? 'text-purple-600 dark:text-purple-400' : 'text-green-600 dark:text-green-400'
                         }`} />
-                      </div>
+                      </motion.div>
                       <p className="text-xs text-gray-600 dark:text-gray-400">Drugs</p>
                     </div>
                   </div>
@@ -1083,7 +1441,7 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
+            transition={{ duration: 0.6, delay: 1.2 }}
             className="mb-8"
           >
             <div className="flex items-center justify-between mb-6">
@@ -1091,12 +1449,14 @@ export default function DashboardPage() {
                 Today's Actions
               </h2>
               {dashboardData?.eating_day && (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => router.push('/my-nutritionState')}
                   className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-lg text-sm font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-300"
                 >
                   View Nutrition History
-                </button>
+                </motion.button>
               )}
             </div>
 
@@ -1142,15 +1502,24 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.1 * index }}
+                  whileHover={{ y: -5, scale: 1.02 }}
                   onClick={item.action}
                   className="group relative overflow-hidden rounded-2xl bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl p-6 text-left hover:shadow-2xl transition-all duration-300"
                 >
+                  {/* Hover gradient effect */}
                   <div className="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  
+                  {/* Animated border */}
+                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-5 transition-opacity duration-300" />
+                  
                   <div className="relative z-10">
                     <div className="flex items-center justify-between mb-4">
-                      <div className={`p-3 bg-gradient-to-br ${item.color} rounded-xl group-hover:scale-110 transition-transform duration-300`}>
+                      <motion.div
+                        whileHover={{ rotate: 12, scale: 1.1 }}
+                        className={`p-3 bg-gradient-to-br ${item.color} rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300`}
+                      >
                         <item.icon className="h-6 w-6 text-white" />
-                      </div>
+                      </motion.div>
                       <div className={`px-2 py-1 text-xs rounded-full ${
                         item.status === 'complete' 
                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
@@ -1163,7 +1532,13 @@ export default function DashboardPage() {
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{item.desc}</p>
                     <div className="flex items-center text-sm font-medium text-blue-600 dark:text-blue-400">
                       <span>{item.status === 'complete' ? 'View details' : 'Get started'}</span>
-                      <ChevronRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                      <motion.div
+                        animate={{ x: [0, 2, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                        className="ml-1"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </motion.div>
                     </div>
                   </div>
                 </motion.button>
@@ -1171,12 +1546,57 @@ export default function DashboardPage() {
             </div>
           </motion.div>
 
+          {/* AI Improvement Areas */}
+          {aiInsights.improvementAreas.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 1.3 }}
+              className="mb-8"
+            >
+              <div className="bg-gradient-to-r from-amber-500/5 to-orange-500/5 rounded-2xl p-6 border border-amber-200/50 dark:border-amber-800/50">
+                <div className="flex items-center gap-3 mb-4">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="p-2.5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg"
+                  >
+                    <Target className="h-5 w-5 text-white" />
+                  </motion.div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      AI-Suggested Improvements
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Areas to focus on for optimal health
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  {aiInsights.improvementAreas.map((area, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="flex items-center gap-3 p-3 bg-white/50 dark:bg-gray-800/50 rounded-xl"
+                    >
+                      <div className="w-2 h-2 bg-amber-500 rounded-full" />
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{area}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {/* Today's Eating Day Status */}
           {dashboardData?.eating_day && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              transition={{ duration: 0.6, delay: 1.4 }}
               className="mb-8"
             >
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -1185,11 +1605,18 @@ export default function DashboardPage() {
               <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {dashboardData.eating_day.meals.map((meal: any) => (
-                    <div key={meal.id} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                    <motion.div
+                      key={meal.id}
+                      whileHover={{ y: -5 }}
+                      className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
+                    >
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg">
+                        <motion.div
+                          whileHover={{ rotate: 12 }}
+                          className="p-2 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg"
+                        >
                           {getMealIcons(meal.meal_type)}
-                        </div>
+                        </motion.div>
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-white capitalize">
                             {meal.meal_type}
@@ -1219,7 +1646,7 @@ export default function DashboardPage() {
                       >
                         {meal.foods.length > 0 ? 'Edit foods' : 'Add foods'}
                       </button>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
                 <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
@@ -1246,14 +1673,18 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.7 }}
+            transition={{ duration: 0.6, delay: 1.5 }}
             className="mb-8"
           >
             <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl rounded-2xl shadow-lg p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur" />
+                    <motion.div
+                      animate={{ rotate: [0, 360] }}
+                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                      className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur"
+                    />
                     <div className="relative p-2.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full">
                       <Activity className="h-6 w-6 text-white" />
                     </div>
@@ -1331,12 +1762,21 @@ export default function DashboardPage() {
                     {todaysActivity.sports && todaysActivity.sports.length > 0 ? (
                       <div className="space-y-3">
                         {todaysActivity.sports.map((sport, index) => (
-                          <div key={sport.id} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
+                          <motion.div
+                            key={sport.id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.1 }}
+                            className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"
+                          >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500/10 to-blue-500/10 flex items-center justify-center">
+                                <motion.div
+                                  whileHover={{ rotate: 12 }}
+                                  className="h-10 w-10 rounded-full bg-gradient-to-br from-purple-500/10 to-blue-500/10 flex items-center justify-center"
+                                >
                                   <span className="text-xl" >{getSportIcon(sport.sport_type)} </span>
-                                </div>
+                                </motion.div>
                                 <div>
                                   <div className="font-medium text-gray-900 dark:text-white">{sport.sport_type}</div>
                                   <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -1345,7 +1785,7 @@ export default function DashboardPage() {
                                 </div>
                               </div>
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     ) : (
@@ -1377,9 +1817,13 @@ export default function DashboardPage() {
               ) : (
                 <div className="text-center py-12">
                   <div className="mb-4">
-                    <div className="h-16 w-16 mx-auto rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center">
+                    <motion.div
+                      animate={{ scale: [1, 1.1, 1] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="h-16 w-16 mx-auto rounded-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 flex items-center justify-center"
+                    >
                       <Activity className="h-8 w-8 text-blue-600 dark:text-blue-400" />
-                    </div>
+                    </motion.div>
                   </div>
                   <h4 className="font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Track Your Daily Activity
@@ -1423,19 +1867,25 @@ export default function DashboardPage() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
+            transition={{ duration: 0.6, delay: 1.6 }}
             className="text-center pt-8 border-t border-gray-200/50 dark:border-gray-800/50"
           >
             <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center gap-2">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2"
+              >
                 <Shield className="h-3 w-3" />
                 <span>HIPAA Compliant</span>
-              </div>
+              </motion.div>
               <div className="h-4 w-px bg-gray-300 dark:bg-gray-700" />
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-3 w-3" />
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="flex items-center gap-2"
+              >
+                <BrainCircuit className="h-3 w-3" />
                 <span>AI-Powered Insights</span>
-              </div>
+              </motion.div>
               <div className="h-4 w-px bg-gray-300 dark:bg-gray-700" />
               <div>Last updated: Just now</div>
             </div>

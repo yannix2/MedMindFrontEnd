@@ -1,6 +1,6 @@
 'use client'
 import Cookies from 'js-cookie'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -10,18 +10,13 @@ import {
   Check,
   Edit2,
   Trash2,
-  Save,
   Loader2,
-  ChevronRight,
-  ChevronLeft,
   Utensils,
   Coffee,
   Pizza,
   Salad,
-  Soup,
   BarChart3,
   Target,
-  Heart,
   Shield,
   Sparkles,
   TrendingUp,
@@ -29,13 +24,13 @@ import {
   Flame,
   PlusCircle,
   ChefHat,
-  MoreVertical,
-  Clock,
-  Calendar,
-  Settings,
-  RefreshCw,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  GlassWater,
+  Waves,
+  Thermometer,
+  ChevronUp,
+  ChevronDown
 } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import { nutritionService, MealData, FoodIntakeData, FoodSuggestion } from '@/lib/nutrition'
@@ -69,6 +64,14 @@ export default function TodayNutritionPage() {
   const [selectedMealType, setSelectedMealType] = useState<string>('')
   const [availableMealTypes, setAvailableMealTypes] = useState<{ type: string; label: string; icon: string; color: string }[]>([])
   const [addingMealLoading, setAddingMealLoading] = useState(false)
+  
+  // New states for water tracking
+  const [showWaterModal, setShowWaterModal] = useState(false)
+  const [waterAmount, setWaterAmount] = useState(1) // Default 1 glass (250ml)
+  const [waterUnit, setWaterUnit] = useState<'glasses' | 'bottles'>('glasses')
+  const [addingWater, setAddingWater] = useState(false)
+  const [todayWaterIntake, setTodayWaterIntake] = useState(0)
+  const [waterGoal, setWaterGoal] = useState(2000) // Default 2L goal
 
   const gradientOrbs = [
     { x: 10, y: 10, color: 'from-green-500/20 to-emerald-500/20', size: 160, duration: 25 },
@@ -91,6 +94,7 @@ export default function TodayNutritionPage() {
       setAvailableMealTypes(available)
     }
   }, [meals])
+
 
   const checkAuthAndLoadData = async () => {
     try {
@@ -125,6 +129,18 @@ export default function TodayNutritionPage() {
       const available = nutritionService.getAvailableMealTypes(todayMeals)
       setAvailableMealTypes(available)
       
+      // Calculate water intake after meals are loaded
+      const totalWater = calculateWaterIntake()
+      setTodayWaterIntake(totalWater)
+      
+      // Set water goal based on profile if available
+      if (dashboard.profile) {
+        const weight = dashboard.profile.weight
+        // Recommended water intake: 30-35 ml per kg of body weight
+        const recommendedWater = Math.round(weight * 33) // 33 ml per kg
+        setWaterGoal(recommendedWater)
+      }
+      
     } catch (error) {
       console.error('Error loading nutrition data:', error)
       router.push('/dashboard')
@@ -132,6 +148,121 @@ export default function TodayNutritionPage() {
       setLoading(false)
     }
   }
+
+  const calculateWaterIntake = () => {
+    let totalWater = 0
+    meals.forEach(meal => {
+      meal.foods.forEach(food => {
+        // Check if food is water intake by name pattern
+        if (food.name.toLowerCase().includes('water')) {
+          // For water entries, the portion is stored in ml
+          totalWater += food.calories || 0
+        }
+      })
+    })
+    return totalWater
+  }
+
+  const handleAddWater = async (amount: number, unit: 'glasses' | 'bottles') => {
+    // Convert to milliliters for storage in the database
+    let amountInMl = 0
+    if (unit === 'glasses') {
+      amountInMl = amount * 250 // 250ml per glass
+    } else {
+      // Bottle sizes: 0.5L, 1L, 1.5L - convert to ml
+      amountInMl = amount * 1000 // Convert liters to ml
+    }
+    
+    setAddingWater(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      // Find a meal to add water to (default to breakfast if available)
+      let targetMealType = 'breakfast'
+      
+      // Check if breakfast exists, otherwise use the first available meal
+      const breakfastMeal = meals.find(m => m.meal_type === 'breakfast')
+      if (!breakfastMeal) {
+        // Use the first meal if breakfast doesn't exist
+        if (meals.length > 0) {
+          targetMealType = meals[0].meal_type
+        } else {
+          // If no meals exist, create a breakfast meal first
+          if (dashboardData?.eating_day) {
+            const eatingDayId = dashboardData.eating_day.id
+            const breakfastMealData = await nutritionService.createMeal({
+              meal_type: 'breakfast',
+              eating_day: eatingDayId
+            })
+            
+            setMeals(prev => [...prev, breakfastMealData])
+            targetMealType = 'breakfast'
+          } else {
+            throw new Error('No eating day found. Please refresh the page.')
+          }
+        }
+      }
+
+      // Create water food intake data - portion is stored as ml in database
+      const displayName = unit === 'glasses' 
+        ? `Water (${amount} glass${amount > 1 ? 'es' : ''})`
+        : `Water (${amount}L bottle${amount > 1 ? 's' : ''})`
+      
+      const waterFood: FoodIntakeData = {
+        name: displayName,
+        meal_type: targetMealType,
+               // Store as ml in database
+        calories: amountInMl, // Water has 0 calories
+        proteins: 0,
+        carbs: 0,
+        fibres: 0,
+        fats: 0,
+        sugars: 0
+      }
+
+      // Add water as food intake
+      const newWater = await nutritionService.addFoodIntake(waterFood)
+      
+      // Update meals state with new water intake
+      setMeals(prev => prev.map(meal => {
+        if (meal.meal_type === targetMealType) {
+          return {
+            ...meal,
+            foods: [...meal.foods, newWater]
+          }
+        }
+        return meal
+      }))
+
+      // Update todayWaterIntake state with the new amount
+      setTodayWaterIntake(prev => prev + amountInMl)
+      
+      setSuccess(`Added ${amountInMl}ml of water to ${nutritionService.getMealDisplayName(targetMealType)}!`)
+      setShowWaterModal(false)
+      setWaterAmount(1) // Reset to default
+      
+      // Auto-hide success message after 2 seconds
+      setTimeout(() => setSuccess(null), 2000)
+      
+    } catch (err: any) {
+      setError(err.message || 'Failed to add water')
+      console.error('Failed to add water:', err)
+    } finally {
+      setAddingWater(false)
+    }
+  }
+
+  const handleQuickWaterAdd = (amount: number, unit: 'glasses' | 'bottles') => {
+    handleAddWater(amount, unit)
+  }
+  useEffect(() => {
+    // Calculate today's water intake whenever meals change
+    if (meals.length > 0) {
+      const totalWater = calculateWaterIntake()
+      setTodayWaterIntake(totalWater)
+    }
+  }, [meals])
 
   // Function to handle adding a new meal
   const handleAddMeal = async (mealType: string) => {
@@ -297,16 +428,21 @@ export default function TodayNutritionPage() {
     try {
       await nutritionService.deleteFoodIntake(foodId)
       
-      // Update meals state
+      // Update meals state and recalculate water if needed
       setMeals(prev => prev.map(meal => {
         if (meal.meal_type === mealType) {
+          const updatedFoods = meal.foods.filter(food => food.id !== foodId)
           return {
             ...meal,
-            foods: meal.foods.filter(food => food.id !== foodId)
+            foods: updatedFoods
           }
         }
         return meal
       }))
+      
+      // Recalculate water intake after deletion
+      const newWaterTotal = calculateWaterIntake()
+      setTodayWaterIntake(newWaterTotal)
       
       setSuccess('Food deleted successfully!')
       setTimeout(() => setSuccess(null), 2000)
@@ -345,32 +481,144 @@ export default function TodayNutritionPage() {
     }, { calories: 0, proteins: 0, carbs: 0, fibres: 0, fats: 0, sugars: 0 })
   }
 
-  const getDailyTargets = () => {
-    if (!dashboardData?.profile) return { calories: 2000, proteins: 50, carbs: 250, fibres: 25, fats: 65, sugars: 50 }
-    
-    // Calculate BMR using Mifflin-St Jeor Equation
-    const weight = dashboardData.profile.weight
-    const height = dashboardData.profile.height
-    const age = dashboardData.profile.age
-    const isMale = dashboardData.profile.sex === 'M'
-    
-    const bmr = isMale 
-      ? 10 * weight + 6.25 * height - 5 * age + 5
-      : 10 * weight + 6.25 * height - 5 * age - 161
-    
-    // Assuming moderate activity level
-    const targetCalories = Math.round(bmr * 1.55)
-    
-    return {
-      calories: targetCalories,
-      proteins: Math.round(targetCalories * 0.15 / 4), // 15% of calories from protein
-      carbs: Math.round(targetCalories * 0.5 / 4),     // 50% of calories from carbs
-      fibres: 25,
-      fats: Math.round(targetCalories * 0.3 / 9),      // 30% of calories from fat
-      sugars: 50
+const getDailyTargets = () => {
+  if (!dashboardData?.profile) {
+    return { 
+      calories: 2000, 
+      proteins: 50, 
+      carbs: 250, 
+      fibres: 25, 
+      fats: 65, 
+      sugars: 50,
+      water: 2000 // Default 2L water goal
     }
   }
 
+  const { profile, goals } = dashboardData
+  const weight = profile.weight
+  const height = profile.height
+  const age = profile.age
+  const isMale = profile.sex === 'M'
+  
+  // Get activity level from profile (default to moderate if not specified)
+  const activityLevel = profile.activity_level || 'moderate'
+  const activityMultipliers = {
+    sedentary: 1.2,      // Little to no exercise
+    light: 1.375,        // Light exercise 1-3 days/week
+    moderate: 1.55,      // Moderate exercise 3-5 days/week
+    active: 1.725,       // Hard exercise 6-7 days/week
+    very_active: 1.9     // Very hard exercise + physical job
+  }
+  
+  // Get goal type (maintain, lose, gain weight)
+  const goalType = goals?.goal_type || 'maintain'
+  const goalWeight = goals?.target_weight || weight
+  const weeklyGoal = goals?.weekly_goal || 0 // kg per week
+  
+  // Calculate BMR using Mifflin-St Jeor Equation (most accurate)
+  let bmr: number
+  if (isMale) {
+    bmr = 10 * weight + 6.25 * height - 5 * age + 5
+  } else {
+    bmr = 10 * weight + 6.25 * height - 5 * age - 161
+  }
+  
+  // Calculate TDEE (Total Daily Energy Expenditure)
+  const activityMultiplier = activityMultipliers[activityLevel] || 1.55
+  let tdee = Math.round(bmr * activityMultiplier)
+  
+  // Adjust calories based on goal
+  let targetCalories = tdee
+  
+  if (goalType === 'lose' && weeklyGoal > 0) {
+    // 7700 calories ≈ 1kg of fat
+    const dailyDeficit = (weeklyGoal * 7700) / 7
+    targetCalories = Math.round(tdee - dailyDeficit)
+    
+    // Ensure minimum safe calories
+    const minCalories = isMale ? 1500 : 1200
+    targetCalories = Math.max(targetCalories, minCalories)
+    
+  } else if (goalType === 'gain' && weeklyGoal > 0) {
+    const dailySurplus = (weeklyGoal * 7700) / 7
+    targetCalories = Math.round(tdee + dailySurplus)
+  }
+  
+  // Calculate water goal based on weight (30-35 ml per kg)
+  // More active people need more water
+  const waterBase = weight * 33 // 33 ml per kg as base
+  const waterMultiplier = activityLevel === 'very_active' ? 1.2 : 
+                         activityLevel === 'active' ? 1.1 :
+                         activityLevel === 'moderate' ? 1.05 : 1.0
+  const targetWater = Math.round(waterBase * waterMultiplier)
+  
+  // Calculate macronutrient distribution based on goals
+  let proteinPercentage: number
+  let carbPercentage: number
+  let fatPercentage: number
+  
+  if (goalType === 'lose') {
+    // Higher protein for fat loss, moderate carbs
+    proteinPercentage = 0.30 // 30%
+    carbPercentage = 0.40    // 40%
+    fatPercentage = 0.30     // 30%
+  } else if (goalType === 'gain') {
+    // Higher carbs for muscle gain
+    proteinPercentage = 0.25 // 25%
+    carbPercentage = 0.50    // 50%
+    fatPercentage = 0.25     // 25%
+  } else {
+    // Maintenance: balanced approach
+    proteinPercentage = 0.20 // 20%
+    carbPercentage = 0.50    // 50%
+    fatPercentage = 0.30     // 30%
+  }
+  
+  // Adjust protein based on activity level
+  if (activityLevel === 'very_active' || activityLevel === 'active') {
+    proteinPercentage += 0.05 // Active people need more protein
+    carbPercentage -= 0.025
+    fatPercentage -= 0.025
+  }
+  
+  // Calculate macronutrient grams
+  // Protein: 4 calories per gram
+  // Carbs: 4 calories per gram
+  // Fat: 9 calories per gram
+  const targetProteins = Math.round((targetCalories * proteinPercentage) / 4)
+  const targetCarbs = Math.round((targetCalories * carbPercentage) / 4)
+  const targetFats = Math.round((targetCalories * fatPercentage) / 9)
+  
+  // Calculate fibre based on calories (14g per 1000 calories)
+  const targetFibres = Math.round((targetCalories / 1000) * 14)
+  
+  // Calculate sugar limit (WHO recommends <10% of total calories)
+  const maxSugarCalories = targetCalories * 0.10
+  const targetSugars = Math.round(maxSugarCalories / 4) // 4 cal/g for sugar
+  
+  return {
+    calories: targetCalories,
+    proteins: targetProteins,
+    carbs: targetCarbs,
+    fibres: Math.max(targetFibres, 25), // Minimum 25g
+    fats: targetFats,
+    sugars: Math.min(targetSugars, 50), // Maximum 50g
+    water: targetWater
+  }
+}
+
+// Then update your water goal setting:
+useEffect(() => {
+  // Calculate today's water intake whenever meals change
+  if (meals.length > 0) {
+    const totalWater = calculateWaterIntake()
+    setTodayWaterIntake(totalWater)
+  }
+  
+  // Set water goal based on calculated targets
+  const targets = getDailyTargets()
+  setWaterGoal(targets.water)
+}, [meals, dashboardData])
   const getCompletionPercentage = () => {
     const dayTotals = calculateDayTotals()
     const targets = getDailyTargets()
@@ -504,6 +752,16 @@ export default function TodayNutritionPage() {
                 <span>AI-Powered Suggestions</span>
               </div>
               
+              {/* Add Water Button */}
+              <button
+                onClick={() => setShowWaterModal(true)}
+                className="group relative px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all hover:scale-[1.02] flex items-center gap-2"
+              >
+                <Droplets className="h-4 w-4" />
+                <span>Add Water</span>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl blur opacity-0 group-hover:opacity-50 transition-opacity -z-10" />
+              </button>
+              
               {/* Add Meal Button */}
               {availableMealTypes.length > 0 && (
                 <button
@@ -553,16 +811,16 @@ export default function TodayNutritionPage() {
           )}
         </AnimatePresence>
 
-        {/* Add Meal Modal */}
+        {/* Water Tracking Modal */}
         <AnimatePresence>
-          {addingMeal && (
+          {showWaterModal && (
             <>
               {/* Overlay */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => !addingMealLoading && setAddingMeal(false)}
+                onClick={() => !addingWater && setShowWaterModal(false)}
                 className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-40"
               />
               
@@ -576,6 +834,320 @@ export default function TodayNutritionPage() {
               >
                 <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800">
                   {/* Modal Header */}
+                  <div className="p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-lg">
+                          <Droplets className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                            Track Water Intake
+                          </h3>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm">
+                            Stay hydrated throughout the day
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => setShowWaterModal(false)}
+                        disabled={addingWater}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Modal Content */}
+                  <div className="p-6">
+                    {addingWater ? (
+                      <div className="py-12 flex flex-col items-center justify-center">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                          className="mb-4"
+                        >
+                          <div className="h-12 w-12 border-3 border-gray-300 dark:border-gray-700 border-t-blue-500 rounded-full" />
+                        </motion.div>
+                        <p className="text-gray-600 dark:text-gray-400">Adding water...</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Water Progress */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Today's Water Intake
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                {todayWaterIntake}ml
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                Goal: {waterGoal}ml
+                              </div>
+                            </div>
+                          </div>
+                          <div className="relative h-4 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${Math.min((todayWaterIntake / waterGoal) * 100, 100)}%` }}
+                              transition={{ duration: 1, ease: "easeOut" }}
+                              className="absolute h-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="text-xs font-semibold text-white mix-blend-overlay">
+                                {Math.round((todayWaterIntake / waterGoal) * 100)}%
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Unit Selection */}
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Add water by
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => {
+                                setWaterUnit('glasses')
+                                setWaterAmount(1)
+                              }}
+                              className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] ${
+                                waterUnit === 'glasses'
+                                  ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20'
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                              }`}
+                            >
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="h-12 w-12 rounded-full flex items-center justify-center text-2xl bg-gradient-to-r from-blue-400 to-cyan-400">
+                                  <GlassWater className="h-6 w-6 text-white" />
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-gray-900 dark:text-white">Glasses</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    250ml per glass
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setWaterUnit('bottles')
+                                setWaterAmount(0.5)
+                              }}
+                              className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] ${
+                                waterUnit === 'bottles'
+                                  ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20'
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                              }`}
+                            >
+                              <div className="flex flex-col items-center gap-3">
+                                <div className="h-12 w-12 rounded-full flex items-center justify-center text-2xl bg-gradient-to-r from-blue-400 to-cyan-400">
+                                  <Thermometer className="h-6 w-6 text-white" />
+                                </div>
+                                <div className="text-center">
+                                  <div className="font-semibold text-gray-900 dark:text-white">Bottles</div>
+                                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                                    Choose size in liters
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Amount Selection */}
+                        {waterUnit === 'glasses' ? (
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Number of Glasses
+                              </div>
+                              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                                {waterAmount} glass{waterAmount !== 1 ? 'es' : ''}
+                              </div>
+                            </div>
+                            <div className="relative">
+                              {/* Slider */}
+                              <input
+                                type="range"
+                                min="1"
+                                max="10"
+                                value={waterAmount}
+                                onChange={(e) => setWaterAmount(parseInt(e.target.value))}
+                                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6 [&::-webkit-slumb-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-blue-500 [&::-webkit-slider-thumb]:to-cyan-500"
+                              />
+                              {/* Labels */}
+                              <div className="flex justify-between mt-2">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                                  <div key={num} className="flex flex-col items-center">
+                                    <div className={`h-2 w-2 rounded-full ${waterAmount === num ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{num}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-center gap-3">
+                              <button
+                                onClick={() => setWaterAmount(Math.max(1, waterAmount - 1))}
+                                className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                              >
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
+                              <div className="text-center">
+                                <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                                  {waterAmount * 250}ml
+                                </div>
+                                <div className="text-sm text-gray-600 dark:text-gray-400">
+                                  ({waterAmount} glass{waterAmount > 1 ? 'es' : ''})
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setWaterAmount(Math.min(10, waterAmount + 1))}
+                                className="p-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors"
+                              >
+                                <ChevronUp className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Select Bottle Size (in liters)
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                              {[
+                                { amount: 0.5, label: 'Small', ml: 500, color: 'from-blue-400 to-blue-600' },
+                                { amount: 1, label: 'Regular', ml: 1000, color: 'from-cyan-400 to-cyan-600' },
+                                { amount: 1.5, label: 'Large', ml: 1500, color: 'from-sky-400 to-sky-600' }
+                              ].map((bottle) => (
+                                <button
+                                  key={bottle.amount}
+                                  onClick={() => setWaterAmount(bottle.amount)}
+                                  className={`relative p-4 rounded-xl border-2 transition-all duration-300 hover:scale-[1.02] ${
+                                    waterAmount === bottle.amount
+                                      ? `border-blue-500 bg-gradient-to-r ${bottle.color} bg-opacity-10`
+                                      : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+                                  }`}
+                                >
+                                  <div className="flex flex-col items-center gap-3">
+                                    <div className={`h-16 w-16 rounded-full flex items-center justify-center text-2xl bg-gradient-to-r ${bottle.color}`}>
+                                      <Waves className="h-8 w-8 text-white" />
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="font-bold text-gray-900 dark:text-white">{bottle.amount}L</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">{bottle.label}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        ({bottle.ml}ml)
+                                      </div>
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Quick Add Buttons */}
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Quick Add
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            <button
+                              onClick={() => handleQuickWaterAdd(1, 'glasses')}
+                              className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:scale-[1.02]"
+                            >
+                              <div className="flex flex-col items-center gap-1">
+                                <GlassWater className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">1 Glass</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">250ml</div>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => handleQuickWaterAdd(2, 'glasses')}
+                              className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:scale-[1.02]"
+                            >
+                              <div className="flex flex-col items-center gap-1">
+                                <GlassWater className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">2 Glasses</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">500ml</div>
+                              </div>
+                            </button>
+                            <button
+                              onClick={() => handleQuickWaterAdd(0.5, 'bottles')}
+                              className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all hover:scale-[1.02]"
+                            >
+                              <div className="flex flex-col items-center gap-1">
+                                <Waves className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                <div className="text-sm font-medium text-gray-900 dark:text-white">0.5L Bottle</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400">500ml</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="p-6 border-t border-gray-200 dark:border-gray-800 bg-gradient-to-r from-white/80 to-white/50 dark:from-gray-900/80 dark:to-gray-900/50">
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => setShowWaterModal(false)}
+                        className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => handleAddWater(waterAmount, waterUnit)}
+                        disabled={addingWater || waterAmount <= 0}
+                        className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {addingWater ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Adding...
+                          </>
+                        ) : (
+                          <>
+                            <Droplets className="h-4 w-4" />
+                            Add {waterUnit === 'glasses' ? `${waterAmount * 250}ml` : `${waterAmount}L`}
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Rest of the component remains the same... */}
+        {/* Add Meal Modal */}
+        <AnimatePresence>
+          {addingMeal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !addingMealLoading && setAddingMeal(false)}
+                className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm z-40"
+              />
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              >
+                <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden border border-gray-200 dark:border-gray-800">
                   <div className="p-6 border-b border-gray-200 dark:border-gray-800 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -601,7 +1173,6 @@ export default function TodayNutritionPage() {
                     </div>
                   </div>
 
-                  {/* Modal Content */}
                   <div className="p-6">
                     {addingMealLoading ? (
                       <div className="py-12 flex flex-col items-center justify-center">
@@ -669,7 +1240,6 @@ export default function TodayNutritionPage() {
                     )}
                   </div>
 
-                  {/* Modal Footer */}
                   <div className="p-6 border-t border-gray-200 dark:border-gray-800 bg-gradient-to-r from-white/80 to-white/50 dark:from-gray-900/80 dark:to-gray-900/50">
                     <button
                       onClick={() => setAddingMeal(false)}
@@ -697,11 +1267,26 @@ export default function TodayNutritionPage() {
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Daily Nutrition Progress</h2>
                 <p className="text-gray-600 dark:text-gray-400">Track your food intake against daily targets</p>
               </div>
-              <div className="text-right">
-                <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                  {getCompletionPercentage()}%
+              <div className="flex items-center gap-6">
+                {/* Water Progress Card */}
+                <div className="text-right">
+                  <div className="flex items-center gap-2 justify-end mb-1">
+                    <Droplets className="h-4 w-4 text-blue-500" />
+                    <div className="text-xl font-bold bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+                      {todayWaterIntake}ml
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {Math.round((todayWaterIntake / waterGoal) * 100)}% of goal
+                  </div>
                 </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">Daily Completion</div>
+                
+                <div className="text-right">
+                  <div className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                    {getCompletionPercentage()}%
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">Daily Completion</div>
+                </div>
               </div>
             </div>
 
@@ -946,9 +1531,8 @@ export default function TodayNutritionPage() {
                                   <div>
                                     <div className="font-medium text-gray-900 dark:text-white">{food.name}</div>
                                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                                      <span>{food.portion}g</span>
-                                      <span>•</span>
-                                      <span>{food.calories} kcal</span>
+                                      <span>{food.name.toLowerCase().includes('water') ? `${food.calories}ml` : `${food.calories}g`}</span>
+                                     
                                     </div>
                                   </div>
                                 </div>
@@ -1042,7 +1626,7 @@ export default function TodayNutritionPage() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Portion (grams)
+                      Portion ({customFood.name?.toLowerCase().includes('water') ? 'ml' : 'grams'})
                     </label>
                     <div className="relative">
                       <input
@@ -1051,15 +1635,17 @@ export default function TodayNutritionPage() {
                         onChange={(e) => handleCustomFoodChange('portion', parseInt(e.target.value) || 0)}
                         className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
                         min="1"
-                        max="1000"
+                        max={customFood.name?.toLowerCase().includes('water') ? "5000" : "1000"}
                       />
-                      <span className="absolute right-3 top-3 text-gray-500 dark:text-gray-400">g</span>
+                      <span className="absolute right-3 top-3 text-gray-500 dark:text-gray-400">
+                        {customFood.name?.toLowerCase().includes('water') ? 'ml' : 'g'}
+                      </span>
                     </div>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Calories
+                      Calories (per {customFood.portion || 100}{customFood.name?.toLowerCase().includes('water') ? 'ml' : 'g'})
                     </label>
                     <div className="relative">
                       <input
@@ -1074,67 +1660,71 @@ export default function TodayNutritionPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Protein (g)
-                      </label>
-                      <input
-                        type="number"
-                        value={customFood.proteins || 0}
-                        onChange={(e) => handleCustomFoodChange('proteins', parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Carbs (g)
-                      </label>
-                      <input
-                        type="number"
-                        value={customFood.carbs || 0}
-                        onChange={(e) => handleCustomFoodChange('carbs', parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                      />
-                    </div>
-                  </div>
+                  {!customFood.name?.toLowerCase().includes('water') && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Protein (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customFood.proteins || 0}
+                            onChange={(e) => handleCustomFoodChange('proteins', parseFloat(e.target.value) || 0)}
+                            className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Carbs (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customFood.carbs || 0}
+                            onChange={(e) => handleCustomFoodChange('carbs', parseFloat(e.target.value) || 0)}
+                            className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Fats (g)
-                      </label>
-                      <input
-                        type="number"
-                        value={customFood.fats || 0}
-                        onChange={(e) => handleCustomFoodChange('fats', parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Fibre (g)
-                      </label>
-                      <input
-                        type="number"
-                        value={customFood.fibres || 0}
-                        onChange={(e) => handleCustomFoodChange('fibres', parseFloat(e.target.value) || 0)}
-                        className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
-                        step="0.1"
-                        min="0"
-                        max="100"
-                      />
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Fats (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customFood.fats || 0}
+                            onChange={(e) => handleCustomFoodChange('fats', parseFloat(e.target.value) || 0)}
+                            className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Fibre (g)
+                          </label>
+                          <input
+                            type="number"
+                            value={customFood.fibres || 0}
+                            onChange={(e) => handleCustomFoodChange('fibres', parseFloat(e.target.value) || 0)}
+                            className="w-full px-4 py-3 bg-gray-50/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                            step="0.1"
+                            min="0"
+                            max="100"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div className="mt-6 flex gap-3">
@@ -1189,6 +1779,52 @@ export default function TodayNutritionPage() {
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Daily Summary</h3>
               
               <div className="space-y-4">
+                {/* Water Progress */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center">
+                        <Droplets className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900 dark:text-white">Water Intake</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {Math.round((todayWaterIntake / waterGoal) * 100)}% of daily goal
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowWaterModal(true)}
+                      className="p-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-lg hover:shadow-lg transition-all hover:scale-110 active:scale-95"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                        {todayWaterIntake}ml / {waterGoal}ml
+                      </span>
+                      <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        {Math.round((todayWaterIntake / waterGoal) * 100)}%
+                      </span>
+                    </div>
+                    <div className="h-2 bg-blue-100 dark:bg-blue-900/30 rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min((todayWaterIntake / waterGoal) * 100, 100)}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="h-full bg-gradient-to-r from-blue-400 to-cyan-400 rounded-full"
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+
                 <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-emerald-900/20 dark:to-green-900/20 rounded-xl">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Calories</span>
@@ -1198,9 +1834,11 @@ export default function TodayNutritionPage() {
                     </span>
                   </div>
                   <div className="h-2 bg-green-100 dark:bg-green-900/30 rounded-full overflow-hidden">
-                    <div
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min((calculateDayTotals().calories / getDailyTargets().calories) * 100, 100)}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
                       className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
-                      style={{ width: `${Math.min((calculateDayTotals().calories / getDailyTargets().calories) * 100, 100)}%` }}
                     />
                   </div>
                 </div>
@@ -1212,10 +1850,16 @@ export default function TodayNutritionPage() {
                     { label: 'Fats', value: calculateDayTotals().fats, target: getDailyTargets().fats, color: 'yellow' },
                     { label: 'Fibre', value: calculateDayTotals().fibres, target: getDailyTargets().fibres, color: 'purple' },
                     { label: 'Sugars', value: calculateDayTotals().sugars, target: getDailyTargets().sugars, color: 'red' }
-                  ].map((item) => {
+                  ].map((item, index) => {
                     const percentage = Math.min((item.value / item.target) * 100, 100)
                     return (
-                      <div key={item.label} className="flex items-center justify-between">
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.05 }}
+                        className="flex items-center justify-between"
+                      >
                         <div className="flex items-center gap-2">
                           <div className={`h-2 w-2 rounded-full bg-${item.color}-500`} />
                           <span className="text-sm text-gray-700 dark:text-gray-300">{item.label}</span>
@@ -1224,35 +1868,50 @@ export default function TodayNutritionPage() {
                           <span className="text-sm font-semibold text-gray-900 dark:text-white">{item.value}g</span>
                           <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">/ {item.target}g</span>
                         </div>
-                      </div>
+                      </motion.div>
                     )
                   })}
                 </div>
 
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.2 }}
+                      className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
+                    >
                       <div className="text-2xl font-bold text-gray-900 dark:text-white">
                         {meals.reduce((acc, meal) => acc + meal.foods.length, 0)}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Total Foods</div>
-                    </div>
-                    <div className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                    </motion.div>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.3 }}
+                      className="text-center p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
+                    >
                       <div className="text-2xl font-bold text-gray-900 dark:text-white">
                         {meals.length}
                       </div>
                       <div className="text-sm text-gray-600 dark:text-gray-400">Meals</div>
-                    </div>
+                    </motion.div>
                   </div>
                 </div>
 
-                <button
+                <motion.button
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
                   onClick={handleFinish}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   className="w-full mt-6 px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   <Check className="h-5 w-5" />
                   Finish Logging Today
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </div>

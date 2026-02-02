@@ -17,6 +17,13 @@ const nextConfig = {
   
   // Output for Vercel
   output: 'standalone',
+    experimental: {
+    allowedDevOrigins: [
+      "http://192.168.56.1",
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ]
+  },
 }
 
 module.exports = nextConfig

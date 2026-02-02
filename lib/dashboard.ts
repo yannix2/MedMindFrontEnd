@@ -46,7 +46,7 @@ export const healthScoreCalculator = {
     
     if (nutritionScore !== null && activityScore !== null) {
       // Weighted average: Nutrition 60%, Activity 40%
-      return Math.round((nutritionScore * 0.6) + (activityScore * 0.4))
+      return Math.round((nutritionScore * 0.7) + (activityScore * 0.4))
     }
     
     // Return whichever score is available
@@ -168,7 +168,7 @@ export const healthScoreCalculator = {
             mealSum + (food.calories || 0), 0) || 0)
         }, 0)
         // For demo: assume 70% of calories are burned through BMR and activity
-        stats.caloriesBurned += Math.round(totalCalories * 0.7)
+        stats.caloriesBurned += Math.round(totalCalories * 0.3)
       }
     }
 

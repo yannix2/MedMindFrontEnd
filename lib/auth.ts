@@ -209,7 +209,7 @@ export const authService = {
     } catch (error) {
       console.error('Logout API error:', error)
     } finally {
-      
+      // Always clear client-side data
       this.clearAuthData()
       log('Client-side auth data cleared')
     }
@@ -236,48 +236,6 @@ export const authService = {
     }
   },
 
-  async getCurrentUser(): Promise<UserProfile | null> {
-    try {
-      log('Fetching current user from /accounts/me')
-      
-      // Debug before request
-      cookieHelper.debugCookies()
-      
-      // This endpoint should verify JWT cookie and return user data
-      const response = await api.get('/accounts/me')
-      const userData = response.data
-      
-      log('User data received:', userData)
-      
-      // Update localStorage with fresh user data
-      if (isBrowser) {
-        localStorage.setItem('user', JSON.stringify(userData))
-        localStorage.setItem('last_auth_check', new Date().toISOString())
-      }
-      
-      return userData
-    } catch (error: any) {
-      log('Failed to fetch current user', {
-        status: error.response?.status,
-        data: error.response?.data,
-        message: error.message
-      })
-      
-      // If it's an auth error (401/403), clear data
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        console.warn('🔒 Authentication failed, clearing local data')
-        this.clearAuthData()
-        
-        // Check if it's a cookie domain issue
-        if (isBrowser && !cookieHelper.hasJwtCookie()) {
-          console.warn('⚠️ No JWT cookie found - could be domain issue')
-          cookieHelper.fixDomainIssue()
-        }
-      }
-      
-      return null
-    }
-  },
 
   // Check if user is authenticated
   async isAuthenticated(): Promise<boolean> {
