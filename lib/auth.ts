@@ -142,6 +142,45 @@ export const cookieHelper = {
 }
 
 export const authService = {
+  // Add this inside your authService object
+async getCurrentUser(): Promise<UserProfile | null> {
+  if (!isBrowser) return null
+
+  try {
+    // First try localStorage
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      return JSON.parse(userStr)
+    }
+
+    // Fallback: call API endpoint to get current user
+    const response = await api.get('/accounts/me/') // <-- your backend endpoint
+    const user: UserProfile = response.data
+    if (user && isBrowser) {
+      localStorage.setItem('user', JSON.stringify(user))
+    }
+    return user
+  } catch (error) {
+    console.error('Failed to fetch current user', error)
+    return null
+  }
+},
+// Add inside your authService
+async validateSession(): Promise<boolean> {
+  try {
+    // First check local JWT cookie
+    if (isBrowser && !cookieHelper.hasJwtCookie()) {
+      return false
+    }
+
+    // Then check if the backend still recognizes the user
+    const user = await this.getCurrentUser()
+    return !!user
+  } catch (error) {
+    console.error('Session validation failed', error)
+    return false
+  }
+},
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
       log('Sending login request...', { email: credentials.email })

@@ -205,7 +205,7 @@ const handleCloseSidebar = () => {
         if (eatingDay) {
           const totals = nutritionService.calculateDayTotals(eatingDay.meals)
           const totalFoods = eatingDay.meals.reduce((acc, meal) => acc + meal.foods.length, 0)
-          const status = nutritionService.getNutritionStatus(eatingDay.nutrition_score, true, totalFoods)
+          const status = nutritionService.getNutritionStatus(eatingDay.nutrition_score, true)
           
           return {
             date,
@@ -461,7 +461,7 @@ const handleCloseSidebar = () => {
       'cereal': Sandwich,
       'banana': Apple,
       'orange': Apple,
-      'cereal': Sandwich,
+      
     }
     
     const lowerName = foodName.toLowerCase()

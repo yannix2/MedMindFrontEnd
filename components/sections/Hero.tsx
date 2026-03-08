@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ArrowRight, Zap, Sparkles, Brain, Shield, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useLanguage } from '@/contexts/language-context'
+
 import Link from 'next/link'
 export function PremiumHero() {
-  const { t } = useLanguage()
+  
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
@@ -63,7 +63,7 @@ export function PremiumHero() {
             <Badge className="px-6 py-2.5 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-pink-500/10 backdrop-blur-xl border border-gray-300/20 dark:border-gray-700/20 rounded-full hover:scale-105 transition-transform duration-300 group">
               <Sparkles className="h-4 w-4 mr-2 text-blue-600 dark:text-blue-400 group-hover:rotate-12 transition-transform duration-500" />
               <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent font-semibold">
-                {t('hero.badge')}
+                {('hero.badge')}
               </span>
             </Badge>
           </motion.div>
@@ -77,11 +77,11 @@ export function PremiumHero() {
           >
             <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent bg-size-200 animate-gradient">
-                {t('hero.title')}
+                {('hero.title')}
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-              {t('hero.subtitle')}
+              {('hero.subtitle')}
             </p>
           </motion.div>
 
@@ -99,7 +99,7 @@ export function PremiumHero() {
             >
               <span className="flex items-center">
                 <Sparkles className="h-5 w-5 mr-3 group-hover:rotate-12 transition-transform duration-500" />
-                {t('hero.ctaPrimary')}
+                {('hero.ctaPrimary')}
                 <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-2 transition-transform duration-300" />
               </span>
             </Button>
@@ -110,7 +110,7 @@ export function PremiumHero() {
               className="px-10 py-7 text-lg border-2 border-gray-300 dark:border-gray-700 hover:border-primary dark:hover:border-primary rounded-2xl hover:scale-105 transition-all duration-300"
             >
               <Zap className="h-5 w-5 mr-3" />
-              {t('hero.ctaSecondary')}
+              {('hero.ctaSecondary')}
             </Button>
           </motion.div>
 

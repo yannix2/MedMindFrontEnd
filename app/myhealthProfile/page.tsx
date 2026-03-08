@@ -1,5 +1,4 @@
-'use client'
-
+"use client"
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -35,9 +34,6 @@ import { profileService, ProfileFormData } from '@/lib/profile'
 
 export default function MyProfilePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const isNewUser = searchParams.get('new') === 'true'
-  
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -171,7 +167,8 @@ export default function MyProfilePage() {
         const updateData = {
           weight: formData.weight,
           height: formData.height,
-          sex: formData.sex
+          sex: formData.sex,
+          age: formData.age // make sure this exists in your formData
         }
         await profileService.updateProfile(profile.id, updateData)
         setSuccess('Profile updated successfully!')

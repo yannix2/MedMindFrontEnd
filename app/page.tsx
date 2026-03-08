@@ -4,10 +4,12 @@ import { HowItWorks } from '@/components/sections/HowItWorks'
 import { Features } from '@/components/sections/Features'
 import { CTA } from '@/components/sections/CTA'
 import { Footer } from '@/components/layout/footer'
-
+import { Suspense } from 'react'
 export default function Home() {
   return (
+      
     <>
+    <Suspense fallback={<div>Loading...</div>}>
       <PremiumNavbar />
       <main className="overflow-hidden">
         <PremiumHero />
@@ -16,6 +18,8 @@ export default function Home() {
         <CTA />
       </main>
       <Footer />
+      </Suspense>
     </>
+    
   )
 }

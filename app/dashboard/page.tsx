@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {EnhancedLiveHealthStats} from '@/components/sections/EnhancedLiveHealthStats'
 import ActivityTrackingModal from '@/components/sections/ActivityTrackingModal'
 import { activityTodayService } from '@/lib/activity-today'
-
+import { ActivityDay } from '@/lib/activity-today'
 import { 
   MessageSquare,
   Brain, 
@@ -334,10 +334,7 @@ export default function DashboardPage() {
     }
   }
 
-  const getHealthScore = () => {
-    if (!dashboardData) return 0
-    return Math.round(dashboardData.overall_score * 10)
-  }
+
 
   const getBMICategory = (bmi: number) => {
     if (bmi < 18.5) return { category: 'Underweight', color: 'text-blue-500', bgColor: 'bg-blue-100' }
@@ -402,6 +399,30 @@ export default function DashboardPage() {
     { value: 3, label: '3 meals', icon: <Pizza className="h-5 w-5" />, color: 'from-amber-500 to-orange-500' },
     { value: 4, label: '4+ meals', icon: <Salad className="h-5 w-5" />, color: 'from-purple-500 to-pink-500' },
   ]
+if (!todaysActivity) {
+  // Handle the "no activity" case
+  return <p>No activity data for today.</p>
+}
+
+const normalizedActivityDay: ActivityDay = {
+  ...todaysActivity,
+  id: todaysActivity.id ?? 0,
+  date: todaysActivity.date ?? new Date().toISOString().split('T')[0],
+  sleep_start: todaysActivity.sleep_start ?? null,
+  sleep_end: todaysActivity.sleep_end ?? null,
+  active_general: todaysActivity.active_general ?? false,
+  activity_score: todaysActivity.activity_score ?? 0,
+  created_at: todaysActivity.created_at ?? new Date().toISOString(),
+  updated_at: todaysActivity.updated_at ?? new Date().toISOString(),
+  sports: todaysActivity.sports.map((s, index) => ({
+    id: s.id ?? index,
+    sport_type: s.sport_type,
+    duration_minutes: s.duration_minutes,
+    calories_burned: s.calories_burned ?? 0,
+    created_at: s.created_at ?? new Date().toISOString(),
+    updated_at: s.updated_at ?? new Date().toISOString(),
+  }))
+}
 
   if (loading || checkingStatus) {
     return (
@@ -1186,7 +1207,7 @@ export default function DashboardPage() {
               </div>
             </motion.div>
           )}
-      {todaysActivity && <EnhancedLiveHealthStats activityDay={todaysActivity} />}
+      {todaysActivity && <EnhancedLiveHealthStats activityDay={normalizedActivityDay} />}
          
 
           {/* Health Tips Carousel */}

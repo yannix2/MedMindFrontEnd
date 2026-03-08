@@ -43,10 +43,12 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
     "@types/js-cookie": "^3.0.6",
+    "@types/jwt-encode": "^1.0.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.22",
+    "baseline-browser-mapping": "^2.10.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.6",
     "postcss": "^8.5.6",

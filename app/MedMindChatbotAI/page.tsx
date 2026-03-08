@@ -1,24 +1,21 @@
 'use client'
 
 import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { Variants, TargetAndTransition } from "framer-motion";
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Brain, Send, User, Bot, Sparkles, Clock, Zap, ChevronLeft,
+  Brain, Send, User, Bot, Clock,  ChevronLeft,
   MessageSquare, Loader2, Copy, ThumbsUp, ThumbsDown,
-  X, CheckCircle, AlertCircle, Shield, Rocket, Target,
-  BrainCircuit, Cpu, Database, LineChart, BarChart3,
-  Heart, Dumbbell, Apple, Moon, Coffee, Activity, Pill,
-  Stethoscope, Thermometer, Scale, TrendingUp, Compass,
-  Award, Crown, Star, BookOpen, Search, Filter, Calendar,
-  Bell, Settings, LogOut, MoreVertical, Play, Pause,
-  Trash2, Volume2, Zap as ZapIcon, Shield as ShieldIcon,
-  Target as TargetIcon, Brain as BrainIcon,
-  Gem, Palette, Cpu as Processor, Waves, Cloud,
-  Satellite, Atom, Telescope, Binary, Globe,
-  CircuitBoard, Crystals, Infinity as InfinityIcon,
-  Network, Orbit, Sparkle, Hexagon,
-  ShieldCheck, ShieldAlert, ZapOff
+  X, CheckCircle, AlertCircle,
+  BrainCircuit, 
+  Heart, Dumbbell, Apple, Moon,Pill,
+ 
+  Trash2, 
+   Cpu as Processor, Atom, Binary,
+  CircuitBoard,  Infinity as InfinityIcon,
+  Network, Orbit, Hexagon,
+  ShieldCheck,
 } from 'lucide-react'
 
 import Cookies from 'js-cookie'
@@ -352,32 +349,33 @@ export default function MedMindChatbotPage() {
 
 
   // Animation variants
-  const messageVariants = {
-    hidden: (custom: { sender: 'user' | 'bot' }) => ({
-      opacity: 0,
-      x: custom.sender === 'user' ? 80 : -80,
-      scale: 0.7,
-      rotateY: custom.sender === 'user' ? 20 : -20
-    }),
-    visible: {
-      opacity: 1,
-      x: 0,
-      scale: 1,
-      rotateY: 0,
-      transition: {
-        type: "spring",
-        stiffness: 300,
-        damping: 25,
-        mass: 0.8
-      }
+const messageVariants: Variants = {
+  hidden: ({ sender }: { sender: "user" | "bot" }): TargetAndTransition => ({
+    opacity: 0,
+    x: sender === "user" ? 50 : -50,
+    scale: 0.8,
+    rotateY: 15,
+  }),
+  visible: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    rotateY: 0,
+    transition: {
+      type: "spring" as const, // <-- fix: assert exact string literal
+      stiffness: 300,
+      damping: 30,
+      mass: 1,
     },
-    exit: {
-      opacity: 0,
-      scale: 0.7,
-      rotateY: 20,
-      transition: { duration: 0.15 }
-    }
-  }
+  },
+  exit: {
+    opacity: 0,
+    x: 0,
+    scale: 0.8,
+    rotateY: 15,
+    transition: { duration: 0.3 },
+  },
+};
 
   return (
     <div className={`min-h-screen ${isFullscreen ? 'fixed inset-0 z-50' : ''} ${isDarkMode 

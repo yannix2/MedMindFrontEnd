@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import { authService } from '@/lib/auth'
 import { nutritionService, MealData, FoodIntakeData, FoodSuggestion } from '@/lib/nutrition'
-import { dashboardService } from '@/lib/dashboard'
+import { DashboardData, dashboardService } from '@/lib/dashboard'
 
 export default function TodayNutritionPage() {
   const router = useRouter()
@@ -212,8 +212,8 @@ export default function TodayNutritionPage() {
       const waterFood: FoodIntakeData = {
         name: displayName,
         meal_type: targetMealType,
-               // Store as ml in database
-        calories: amountInMl, // Water has 0 calories
+        portion: amountInMl, // Store portion as ml for water 
+        calories: 0, // Water has 0 calories
         proteins: 0,
         carbs: 0,
         fibres: 0,
@@ -295,11 +295,10 @@ export default function TodayNutritionPage() {
       setActiveMeal(mealType)
       
       // Update dashboard data
-      setDashboardData(prev => ({
-        ...prev,
-        eating_day: updatedEatingDay
-      }))
-      
+setDashboardData((prev: DashboardData | null) => ({
+  ...prev!,
+  eating_day: updatedEatingDay
+}))
       // Update available meal types
       const updatedAvailable = nutritionService.getAvailableMealTypes([...meals, newMeal])
       setAvailableMealTypes(updatedAvailable)
@@ -522,9 +521,10 @@ const getDailyTargets = () => {
   } else {
     bmr = 10 * weight + 6.25 * height - 5 * age - 161
   }
-  
+  const level: keyof typeof activityMultipliers = activityLevel as keyof typeof activityMultipliers
+
   // Calculate TDEE (Total Daily Energy Expenditure)
-  const activityMultiplier = activityMultipliers[activityLevel] || 1.55
+  const activityMultiplier = activityMultipliers[level] || 1.55
   let tdee = Math.round(bmr * activityMultiplier)
   
   // Adjust calories based on goal

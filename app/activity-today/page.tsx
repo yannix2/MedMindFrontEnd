@@ -1057,14 +1057,14 @@ export default function EnhancedActivityTodayPage() {
                               +{Math.round(sport.duration_minutes * (intensityInfo?.multiplier || 1) * 0.1)} pts
                             </div>
                             <div className="flex items-center gap-3">
-                              <motion.button
+                             {sport.id !== undefined && ( <motion.button
                                 whileHover={{ scale: 1.1 }}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => handleDeleteSport(sport.id)}
                                 className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl transition-colors"
                               >
                                 <Trash2 className="h-4 w-4" />
-                              </motion.button>
+                              </motion.button>)}
                             </div>
                           </div>
                         </div>

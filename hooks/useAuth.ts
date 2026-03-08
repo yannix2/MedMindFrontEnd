@@ -1,6 +1,6 @@
 // hooks/useAuth.ts
 import { useState, useEffect, useCallback } from 'react'
-import { authService, UserProfile } from '@/lib/auth'
+import { LoginCredentials,authService, UserProfile,RegisterData } from '@/lib/auth'
 
 export function useAuth() {
   const [user, setUser] = useState<UserProfile | null>(null)

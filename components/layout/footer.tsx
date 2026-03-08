@@ -1,7 +1,6 @@
 "use client"
 import { Brain, Twitter, Linkedin, Instagram, Github, Heart } from 'lucide-react'
 import Link from 'next/link'
-import { useLanguage } from '@/contexts/language-context'
 
 const footerLinks = {
   product: [
@@ -28,7 +27,6 @@ const footerLinks = {
 }
 
 export function Footer() {
-  const { t } = useLanguage()
 
   return (
     <footer className="bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950 border-t">
@@ -48,7 +46,7 @@ export function Footer() {
               </div>
             </Link>
             <p className="text-gray-600 dark:text-gray-400 mb-8 max-w-md">
-              {t('footer.tagline')}
+              {('footer.tagline')}
             </p>
            <div className="flex gap-4">
   {[
@@ -74,7 +72,7 @@ export function Footer() {
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
               <h3 className="font-bold text-lg mb-6 text-gray-800 dark:text-gray-200">
-                {t(`footer.${category}`)}
+                {(`footer.${category}`)}
               </h3>
               <ul className="space-y-4">
                 {links.map((link) => (
@@ -83,7 +81,7 @@ export function Footer() {
                       href={link.href} 
                       className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-300"
                     >
-                      {t(link.key)}
+                      {(link.key)}
                     </Link>
                   </li>
                 ))}
@@ -95,7 +93,7 @@ export function Footer() {
         <div className="border-t border-gray-200 dark:border-gray-800 mt-12 pt-8 text-center">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 dark:text-gray-400">
-              {t('footer.copyright')}
+              {('footer.copyright')}
             </p>
             <p className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
               Made with <Heart className="h-4 w-4 text-red-500" /> by MedMind Team
