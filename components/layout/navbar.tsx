@@ -9,13 +9,13 @@ import { Menu, X, Sparkles} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 
-
+import { useLanguage } from '@/contexts/language-context'
 import Image from 'next/image'
 import logo from "@/public/logo.png"
 export function PremiumNavbar() {
   const [scrolled, setScrolled] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-
+  const { t } = useLanguage()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -28,11 +28,11 @@ export function PremiumNavbar() {
   }, [])
 
   const navItems = [
-    { label: ('nav.howItWorks'), href: '/#how-it-works' },
-    { label: ('nav.features'), href: '/#features' },
-    { label: ('nav.blog'), href: '/blog' },
-    { label: ('nav.about'), href: '/aboutus' },
-    { label: ('nav.contact'), href: '/contactus' },
+    { label: t('nav.howItWorks'), href: '/#how-it-works' },
+    { label: t('nav.features'), href: '/#features' },
+    { label: t('nav.blog'), href: '/blog' },
+    { label: t('nav.about'), href: '/aboutus' },
+    { label: t('nav.contact'), href: '/contactus' },
   ]
 
   if (!mounted) return null
@@ -91,7 +91,7 @@ export function PremiumNavbar() {
                 <Button className="bg-gradient-to-r hover:cursor-pointer from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-2xl hover:shadow-3xl hover:scale-105 transition-all duration-500 rounded-xl px-6 h-10 group/cta">
                   <span className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 group-hover/cta:rotate-12 transition-transform duration-500" />
-                    {('nav.signIn')}
+                    {t('nav.signIn')}
                   </span>
                 </Button>
               </Link>
@@ -153,7 +153,7 @@ export function PremiumNavbar() {
                 <Link href="/signup" onClick={() => setMobileMenuOpen(false)}>
                   <Button className="w-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white shadow-2xl hover:shadow-3xl rounded-xl py-6 text-lg">
                     <Sparkles className="h-5 w-5 mr-2" />
-                    {('nav.getStarted')}
+                    {t('nav.getStarted')}
                   </Button>
                 </Link>
               </div>

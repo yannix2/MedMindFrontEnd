@@ -1,7 +1,7 @@
 // lib/api.ts - FIXED VERSION
 import axios from 'axios'
 
-export const API_BASE_URL = 'https://medmind-m53v.onrender.com'
+export const API_BASE_URL = 'https://medmind-m53v.onrender.com/api'
 
 // CRITICAL: Create axios instance with explicit config
 const api = axios.create({

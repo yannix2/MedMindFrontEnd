@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { ClipboardList, Brain, BarChart3, Heart, ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-
+import { useLanguage } from '@/contexts/language-context'
 
 const steps = [
   {
@@ -35,7 +35,7 @@ const steps = [
 ]
 
 export function HowItWorks() {
-  
+  const { t } = useLanguage()
 
   return (
     <section id="how-it-works" className="py-24 bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
@@ -50,10 +50,10 @@ export function HowItWorks() {
               How It Works
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              {('howItWorks.title')}
+              {t('howItWorks.title')}
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              {('howItWorks.subtitle')}
+              {t('howItWorks.subtitle')}
             </p>
           </motion.div>
         </div>
@@ -81,11 +81,11 @@ export function HowItWorks() {
                         <div className="flex items-center gap-3 mb-3">
                           <span className="text-sm font-bold text-gray-400 dark:text-gray-500">0{index + 1}</span>
                           <h3 className="text-2xl font-bold text-gray-800 dark:text-gray-200">
-                            {(item.title)}
+                            {t(item.title)}
                           </h3>
                         </div>
                         <p className="text-gray-600 dark:text-gray-400">
-                          {(item.description)}
+                          {t(item.description)}
                         </p>
                       </div>
                     </div>

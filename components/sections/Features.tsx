@@ -13,7 +13,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-
+import { useLanguage } from '@/contexts/language-context'
 
 const features = [
   {
@@ -55,7 +55,7 @@ const features = [
 ]
 
 export function Features() {
-  
+  const { t } = useLanguage()
 
   return (
     <section id="features" className="py-24 bg-white dark:bg-gray-950">
@@ -70,10 +70,10 @@ export function Features() {
               Features
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              {('features.title')}
+              {t('features.title')}
             </h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              {('features.subtitle')}
+              {t('features.subtitle')}
             </p>
           </motion.div>
         </div>
@@ -101,10 +101,10 @@ export function Features() {
                 </CardHeader>
                 <CardContent>
                   <CardTitle className="text-2xl mb-4 text-gray-800 dark:text-gray-200">
-                    {(feature.title)}
+                    {t(feature.title)}
                   </CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-400 text-lg">
-                    {(feature.description)}
+                    {t(feature.description)}
                   </CardDescription>
                   <div className="mt-6 flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400">
                     <CheckCircle className="h-4 w-4" />
