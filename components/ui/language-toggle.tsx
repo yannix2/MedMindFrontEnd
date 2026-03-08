@@ -77,7 +77,7 @@ export function LanguageToggle({ className }: { className?: string }) {
                       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                   )}
                 >
-                  {lang.icon}
+                  {lang.code.toUpperCase()}
                   {/* Or use the SVG flag component: */}
                   {/* {lang.flagComponent()} */}
                   
