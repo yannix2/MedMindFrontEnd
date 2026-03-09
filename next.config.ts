@@ -20,9 +20,7 @@ const nextConfig = {
   
   // Output for Vercel
   output: 'standalone',
-    experimental: {
- allowedDevOrigins: ["*"]
-  },
+
 }
 
 module.exports = nextConfig
