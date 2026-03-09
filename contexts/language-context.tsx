@@ -93,6 +93,7 @@ const translations = {
     'footer.gdpr': 'GDPR',
     'footer.compliance': 'Compliance',
     'footer.tagline': 'Empowering healthier lives through AI-powered insights and personalized recommendations.',
+    
   },
   fr: {
     // Navigation
@@ -207,10 +208,9 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     window.location.reload()
   }
 
-  const t = (key: string): string => {
-    return translations[language][key as keyof typeof translations['en']] || key
-  }
-
+const t = (key: string): string => {
+  return (translations as any)[language]?.[key] || translations.en[key as keyof typeof translations.en] || key
+}
   return (
     <LanguageContext.Provider value={{ language, setLanguage: handleSetLanguage, t }}>
       {children}
