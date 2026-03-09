@@ -5,10 +5,13 @@ const nextConfig = {
   
   // Add these for Vercel
   images: {
-    domains: ['medmind-wkpd.onrender.com'],
-    unoptimized: true, // For Vercel optimization
-  },
-  
+  remotePatterns: [
+    {
+      protocol: "https",
+      hostname: "medmind-wkpd.onrender.com"
+    }
+  ]
+},
   // Environment variables for production
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
@@ -18,11 +21,7 @@ const nextConfig = {
   // Output for Vercel
   output: 'standalone',
     experimental: {
-    allowedDevOrigins: [
-      "http://192.168.56.1",
-      "http://localhost:3000",
-      "http://127.0.0.1:3000"
-    ]
+ allowedDevOrigins: ["*"]
   },
 }
 
